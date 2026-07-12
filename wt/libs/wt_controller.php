@@ -1,12 +1,11 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
@@ -45,6 +44,29 @@ abstract class Wt_Controller
         $this->view();
     }
 
+    private function assignHreflang(): void
+    {
+        $appUrl  = rtrim($_ENV['APP_URL'] ?? 'https://wondtech.com', '/');
+        $reqUri  = $_SERVER['REQUEST_URI'] ?? '/';
+        $path    = parse_url($reqUri, PHP_URL_PATH) ?: '/';
+
+        parse_str((string) parse_url($reqUri, PHP_URL_QUERY), $query);
+        unset($query['lang']);
+        $baseQuery = http_build_query($query);
+        $basePath  = $path . ($baseQuery !== '' ? '?' . $baseQuery : '');
+        $sep       = $baseQuery !== '' ? '&' : '?';
+
+        $isAr    = ($_SESSION['lang'] ?? 'EN') === 'AR';
+        $hrefEn  = $appUrl . $basePath;
+        $hrefAr  = $appUrl . $basePath . $sep . 'lang=AR';
+
+        $this->tpl->assign('html_lang',    $isAr ? 'ar' : 'en');
+        $this->tpl->assign('canonical_self', $isAr ? $hrefAr : $hrefEn);
+        $this->tpl->assign('hreflang_ar',  $hrefAr);
+        $this->tpl->assign('hreflang_en',  $hrefEn);
+        $this->tpl->assign('hreflang_x',   $hrefEn);
+    }
+
     protected function view(?string $type = null): Wt_Smarty
     {
         $this->tpl  = new Wt_Smarty($type);
@@ -52,10 +74,12 @@ abstract class Wt_Controller
         foreach ($this->lang as $key => $val) {
             $this->tpl->assign($key, $val);
         }
+        $this->assignHreflang();
         foreach ($this->actPages as $actPage) {
             $this->tpl->assign($actPage, '');
         }
         $this->tpl->assign('params', $this->params);
+        $this->tpl->assign('wt_version', $_ENV['APP_VERSION'] ?? '2.0');
         if ($this->action === Wt_Front::NOT_FOUND_ACTION) {
             $this->tpl->view('notfound.tpl');
         }

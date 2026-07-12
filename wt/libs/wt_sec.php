@@ -1,12 +1,11 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
@@ -32,7 +31,7 @@ trait Wt_Sec
 
     private function Wt_cleanString(string $string): string
     {
-        return preg_replace('/[^a-zA-Z0-9-أ-ي٠-٩@._:\/ -]+/u', '', $string) ?? '';
+        return preg_replace('/[^a-zA-Z0-9-أ-ي٠-٩@._:\/ &(),!?+-]+/u', '', $string) ?? '';
     }
 
     private function Wt_cleanInt(string $number): string
@@ -50,7 +49,7 @@ trait Wt_Sec
         $input = $this->Wt_cleanString($input);
 
         return match($opt) {
-            'str'   => htmlspecialchars(strip_tags($input), ENT_QUOTES, 'UTF-8'),
+            'str'   => strip_tags($input),
             'int'   => filter_var($this->Wt_cleanInt($input), FILTER_SANITIZE_NUMBER_INT),
             'flo'   => filter_var($this->Wt_cleanInt($input), FILTER_SANITIZE_NUMBER_FLOAT),
             'email' => filter_var($input, FILTER_VALIDATE_EMAIL),
@@ -68,12 +67,15 @@ trait Wt_Sec
     {
         ob_start();
         $captchaCode = $_SESSION['captcha'] ?? $this->Wt_CrtCap();
-        $captchaImg  = imagecreate(75, 37);
-        imagecolorallocate($captchaImg, 213, 176, 103);
-        $captchaTxt  = imagecolorallocate($captchaImg, 0, 0, 0);
+        $captchaImg  = imagecreatetruecolor(75, 37);
+        imagealphablending($captchaImg, false);
+        imagesavealpha($captchaImg, true);
+        $transparent = imagecolorallocatealpha($captchaImg, 0, 0, 0, 127);
+        imagefill($captchaImg, 0, 0, $transparent);
+        imagealphablending($captchaImg, true);
+        $captchaTxt  = imagecolorallocate($captchaImg, 255, 255, 255);
         imagestring($captchaImg, 5, 10, 10, (string)$captchaCode, $captchaTxt);
         imagepng($captchaImg);
-        imagedestroy($captchaImg);
         $img = base64_encode(ob_get_contents());
         ob_end_clean();
         return $img;
@@ -91,7 +93,6 @@ trait Wt_Sec
         };
         if (!$image) return false;
         imagejpeg($image, $destination, $quality);
-        imagedestroy($image);
         return $destination;
     }
 
@@ -100,13 +101,29 @@ trait Wt_Sec
         if (!isset($img['tmp_name']) || !is_uploaded_file($img['tmp_name'])) {
             return false;
         }
+
+        if ($img['size'] > 2097152) {
+            return false;
+        }
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $extension = strtolower(pathinfo($img['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, $allowedExtensions, true)) {
+            return false;
+        }
+
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        $finfo        = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType     = finfo_file($finfo, $img['tmp_name']);
-        finfo_close($finfo);
+        $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $img['tmp_name']);
         if (!in_array($mimeType, $allowedTypes, true)) {
             return false;
         }
+
+        $info = getimagesize($img['tmp_name']);
+        if (!$info || $info[0] < 100 || $info[1] < 100) {
+            return false;
+        }
+
         $compressed = $this->Wt_Compress($img['tmp_name'], $img['tmp_name'], 50);
         if (!$compressed) return false;
 

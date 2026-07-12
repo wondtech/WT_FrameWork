@@ -1,12 +1,11 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
@@ -20,9 +19,10 @@ class Wt_Smarty extends \Smarty
     {
         parent::__construct();
 
-        $templateDir = match($type) {
-            'admin' => ADMIN_TEMPLATE_PATH,
-            default => TEMPLATE_PATH,
+        $templateDir = match(true) {
+            $type === 'admin'  => ADMIN_TEMPLATE_PATH,
+            $type !== null     => TEMPLATE . $type . DS,
+            default            => TEMPLATE_PATH,
         };
         $this->setTemplateDir($templateDir);
         $this->ensureDir(TEMP_C);
@@ -31,10 +31,12 @@ class Wt_Smarty extends \Smarty
         $this->setCompileDir(TEMP_C);
         $this->setConfigDir(TEMP_CONF);
         $this->setCacheDir(TEMP_CACHE);
+        //$this->force_compile = true;
         if ($_ENV['APP_CACHE'] === 'true') {
             $this->setCaching(\Smarty::CACHING_LIFETIME_CURRENT);
         }
         $allowedLangs = ['EN', 'AR'];
+        $_SESSION['lang'] = $_SESSION['lang'] ?? 'EN';
         $lang         = $_GET['lang'] ?? null;
         if ($lang && in_array($lang, $allowedLangs, true)) {
             $_SESSION['lang'] = $lang;

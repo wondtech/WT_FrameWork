@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <b>WT Framework - PHP Edition v1.1</b><br/>
+  <b>WT Framework - PHP Edition v2.0</b><br/>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1-blue"/>
+  <img src="https://img.shields.io/badge/version-2.0-blue"/>
   <img src="https://img.shields.io/badge/php-%3E%3D8.2-blue?logo=PHP"/>
   <img src="https://img.shields.io/badge/mysql-%3E%3D5.7-blue?logo=mysql"/>
   <img src="https://img.shields.io/badge/license-MIT-green"/>
@@ -20,6 +20,19 @@
 ## Overview
 
 A lightweight, secure PHP MVC framework built for rapid web application development. Clean architecture, minimal dependencies, and production-ready security out of the box.
+
+---
+
+## What's new in v2.0
+
+- **`Wt_Auth` trait** — session-based role/capability authorization for controllers: `requireRole()`, `requireAnyRole()`, `can()`, `loginUser()`, `logoutUser()`. Define access by overriding `roleCapabilities()`.
+- **Bearer-token API support** — the `.htaccess` now passes the `Authorization` header through to PHP, so token-authenticated API endpoints work out of the box.
+- **Hardened front controller** (`index.php`) — baseline security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS), a global exception handler (JSON for `/api`, no stack-trace leaks), hardened session cookie (HttpOnly + SameSite), and env-driven timezone / debug.
+- **Integration plugins** (`wt/plugins/`, namespace `WT\Plugins`, config via `.env`):
+  - **`Whatsapp`** — WhatsApp Cloud API (text, templates, media, buttons, OTP, webhooks).
+  - **`Stripe`** — payments (Checkout, PaymentIntents, customers, refunds, signed webhooks).
+- **Ready-made examples** — a full **light / WondTech-branded admin panel** (`wt/template/admin` + `wt/template/auth`): sign-in with captcha, a dashboard, and a users section, wired through `Auth_Controller`, `Admin_Controller`, and `Admin\Users_Controller`.
+- **`WtHelper` additions** — richer date/format/relative-time helpers.
 
 ---
 
@@ -303,4 +316,4 @@ class My_Controller extends Wt_Controller
 
 ## License
 
-© 2026 WT Framework — PHP Edition 1.1 — Built by [WondTech](https://wondtech.com). All rights reserved.
+© 2026 WT Framework — PHP Edition 2.0 — Built by [WondTech](https://wondtech.com). All rights reserved.

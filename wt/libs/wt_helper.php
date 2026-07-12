@@ -1,12 +1,11 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
@@ -39,7 +38,6 @@ trait Wt_Helper
             $path = $_SESSION['url'] ?? '/';
         }
 
-        // منع Open Redirect — التحقق أن الـ URL داخلي فقط
         $parsedUrl  = parse_url($path);
         $parsedHost = $parsedUrl['host'] ?? null;
         $serverHost = $_SERVER['HTTP_HOST'] ?? '';
@@ -99,5 +97,54 @@ trait Wt_Helper
             </div>';
             exit;
         }
+    }
+
+    public function Wt_GenCsrf(): string
+    {
+        // Stable per-session token (synchronizer pattern): generated once, then reused
+        // for the session so multiple tabs / back-button navigation keep a valid token.
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    public function Wt_ChkCsrf(?string $token): bool
+    {
+        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token ?? '');
+    }
+
+    /**
+     * Builds a ZATCA-compliant (Phase 1) Base64 TLV QR payload for invoices/quotes.
+     * Shared by admin and client print views.
+     */
+    public function Wt_ZatcaQr(string $sellerName, string $vatNumber, string $invoiceDate, float $total, float $vatAmount): string
+    {
+        $tlv = function (int $tag, string $value): string {
+            $v = mb_convert_encoding($value, 'UTF-8');
+            return chr($tag) . chr(strlen($v)) . $v;
+        };
+        return base64_encode(
+            $tlv(1, $sellerName)
+            . $tlv(2, $vatNumber)
+            . $tlv(3, $invoiceDate)
+            . $tlv(4, number_format($total, 2, '.', ''))
+            . $tlv(5, number_format($vatAmount, 2, '.', ''))
+        );
+    }
+
+    public static function Wt_Flash(string $type, string $msg): void
+    {
+        $_SESSION['flash'] = ['type' => $type, 'msg' => $msg];
+    }
+
+    public static function Wt_GetFlash(): ?array
+    {
+        if (isset($_SESSION['flash'])) {
+            $f = $_SESSION['flash'];
+            unset($_SESSION['flash']);
+            return $f;
+        }
+        return null;
     }
 }

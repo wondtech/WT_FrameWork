@@ -1,18 +1,22 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
 
 abstract class Wt_Model
 {
+
+    protected static $pKey;
+    protected static $tableName;
+    protected static $tableSchema;
+
     const DATA_TYPE_INT  = \PDO::PARAM_INT;
     const DATA_TYPE_STR  = \PDO::PARAM_STR;
     const DATA_TYPE_FIL  = \PDO::PARAM_LOB;
@@ -28,7 +32,7 @@ abstract class Wt_Model
     private function prepareValues(\PDOStatement $stmt): void
     {
         foreach (static::$tableSchema as $columnName => $type) {
-            if (!array_key_exists($columnName, get_object_vars($this))) {
+            if (!property_exists($this, $columnName)) {
                 continue;
             }
             $value = $this->$columnName;
@@ -46,7 +50,7 @@ abstract class Wt_Model
     {
         $parts = [];
         foreach (static::$tableSchema as $columnName => $type) {
-            if (!array_key_exists($columnName, get_object_vars($this))) {
+            if (!property_exists($this, $columnName)) {
                 continue;
             }
             $value = $this->$columnName;
@@ -54,7 +58,7 @@ abstract class Wt_Model
                 continue;
             }
             if ($type === self::DATA_TYPE_BOOL) {
-                $this->$columnName = $value ? 1 : 0;
+                $value = $value ? 1 : 0;
             }
             $parts[] = $columnName . ' = :' . $columnName;
         }
@@ -77,7 +81,11 @@ abstract class Wt_Model
                 return $stmt->execute();
             }
             $stmt->execute();
-            return (int) $PDO->lastInsertId();
+            $newId = (int) $PDO->lastInsertId();
+            if ($newId > 0) {
+                $this->{static::$pKey} = $newId;
+            }
+            return $newId;
         } catch (\PDOException $e) {
             self::logError('wt_insert', $e);
             throw new \RuntimeException('Database error on insert.', 0, $e);
@@ -155,7 +163,7 @@ abstract class Wt_Model
         array   $bindings = [],
         ?int    $items    = null,
         ?int    $page     = null
-    ): ?array {
+    ): array {
         $sql = 'SELECT * FROM ' . static::$tableName;
         if (!empty($SQL)) {
             $sql .= ' ' . $SQL;
@@ -173,10 +181,9 @@ abstract class Wt_Model
             $stmt->execute();
             $results = $stmt->fetchAll(
                 \PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE,
-                get_called_class(),
-                array_keys(static::$tableSchema)
+                get_called_class()
             );
-            return !empty($results) ? $results : null;
+            return !empty($results) ? $results : [];
         } catch (\PDOException $e) {
             self::logError('wt_getData', $e);
             throw new \RuntimeException('Database error on select.', 0, $e);
@@ -197,8 +204,7 @@ abstract class Wt_Model
             if ($stmt->execute() === true) {
                 $results = $stmt->fetchAll(
                     \PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE,
-                    get_called_class(),
-                    array_keys(static::$tableSchema)
+                    get_called_class()
                 );
                 return !empty($results) ? array_shift($results) : false;
             }

@@ -1,12 +1,11 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
@@ -26,7 +25,6 @@ trait Wt_Send
 
     private function buildHeaders(string $fromName, string $fromEmail): string
     {
-        // تنظيف من Header Injection
         $fromName  = str_replace(["\r", "\n"], '', $fromName);
         $fromEmail = str_replace(["\r", "\n"], '', $fromEmail);
         $from      = $fromName . '<' . $fromEmail . '>';
@@ -52,7 +50,6 @@ trait Wt_Send
             return false;
         }
 
-        // تنظيف من Header Injection
         $subject = str_replace(["\r", "\n"], '', $subject);
 
         $headers = $this->buildHeaders($senderName, $senderEmail);
@@ -63,62 +60,40 @@ trait Wt_Send
     public function Wt_SendEmail(
         string $to,
         string $subject,
-        string $message
+        string $message,
+        ?int $toUserId = null
     ): bool {
         $this->initMailConfig();
 
+        $sentBy = $_SESSION['auth_id'] ?? null;
+
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            $this->logEmail($to, $subject, $message, 'failed', 'invalid recipient', $toUserId, $sentBy);
             return false;
         }
 
-        // تنظيف من Header Injection
         $subject = str_replace(["\r", "\n"], '', $subject);
-
         $headers = $this->buildHeaders($this->appName, $this->sEmail);
+        $ok      = mail($to, $subject, $message, $headers);
 
-        return mail($to, $subject, $message, $headers);
+        $this->logEmail($to, $subject, $message, $ok ? 'sent' : 'failed', $ok ? null : 'mail() returned false', $toUserId, $sentBy);
+        return $ok;
     }
 
-    public function Wt_SendSms($mobile, $msg){
-        function PostRequest($url, $referer, $_data){
-            $smsData = array();
-            while(list($n,$v) = each($_data)){
-                $smsData[] = "$n=$v";
-            }
-            $smsData = implode('&', $smsData);
-            $url = parse_url($url);
-            if ($url['scheme'] != 'http'){
-                die('Only HTTP request are supported !');
-            }
-            $host = $url['host'];
-            $path = $url['path'];
-            $fp = fsockopen($host, 80);
-            fputs($fp, "POST $path HTTP/1.1\r\n");
-            fputs($fp, "Host: $host\r\n");
-            fputs($fp, "Referer: $referer\r\n");
-            fputs($fp, "Content-type: application/x-www-form-urlencoded\r\n");
-            fputs($fp, "Content-length: ". strlen($smsData) ."\r\n");
-            fputs($fp, "Connection: close\r\n\r\n");
-            fputs($fp, $smsData);
-            $result = '';
-            while(!feof($fp)){
-                $result .= fgets($fp, 128);
-            }
-            fclose($fp);
-            $result = explode("\r\n\r\n", $result, 2);
-            $header = isset($result[0]) ? $result[0] : '';
-            $content = isset($result[1]) ? $result[1] : '';
-            return array($header, $content);
-        }
-        $smsData = array(
-            'user'      => "ppnts",
-            'password'  => "ppnts@!",
-            'msisdn'    => $mobile,
-            'sid'       => "PPNTS",
-            'msg'       => $msg,
-            'fl'        =>"0",
-        );
-        list($header, $content) = PostRequest("https://sms.wondtech.com/vendorsms/pushsms.aspx?user=abc&password=xyz&msisdn=966556xxxxxx&sid=SenderId&msg=test%20message&fl=0", "", $smsData);
-        //echo $content;
+    /**
+     * Hook: record a sent / failed email. No-op by default — override in your
+     * app (or a subclass) to persist to your own log or model.
+     */
+    protected function logEmail(
+        string $to,
+        string $subject,
+        string $message,
+        string $status,
+        ?string $error,
+        ?int $toUserId,
+        ?int $sentBy
+    ): void {
+        // no-op by default; override to persist an email-log entry.
     }
+
 }

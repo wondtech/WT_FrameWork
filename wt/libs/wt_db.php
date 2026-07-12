@@ -1,12 +1,11 @@
 <?php
 /***********************************************************************
  *          @Project    : WT FrameWork
- *          @version    : 1.1
+ *          @version    : 2.0
  *          @author     : Mogbil Sourketti info[@]wondtech.com
  *          @copyright  : 2020 WondTech for Integrated Digital Solutions
  *          @link       : http://www.wondtech.com
- *          @package    : WT FrameWork (1.1) — Improved
- *
+ *          @package    : WT FrameWork (2.0) — Improved
  ************************************************************************/
 
 namespace WT\LIBS;
@@ -52,6 +51,10 @@ class Wt_DB
             ]);
 
             $this->pdo->exec("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+            // Align MySQL's clock with PHP's so NOW() matches PHP date() — keeps
+            // short-lived expiry checks (OTP/token: expires_at > NOW()) correct
+            // regardless of the server's default MySQL time zone.
+            $this->pdo->exec("SET time_zone = '" . (new \DateTime())->format('P') . "'");
 
         } catch (\PDOException $e) {
             error_log('[Wt_DB] ' . $e->getMessage());

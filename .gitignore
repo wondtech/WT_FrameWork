@@ -1,0 +1,13 @@
+# OS / IDE
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Local env overrides (keep .env.example as the template)
+# .env is shipped as a placeholder template; do not commit real secrets.
+
+# Caches / build
+wt/cache/
+*.log
