@@ -65,4 +65,6 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_once 'wt' . DS . 'libs' . DS . 'wt_conf.php';
 require_once 'wt' . DS . 'libs' . DS . 'wt_auto.php';
 
+\WT\LIBS\Wt_Smarty::resolveLang();
+
 (new Wt_Front())->dispatch();

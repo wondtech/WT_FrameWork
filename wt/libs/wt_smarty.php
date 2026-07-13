@@ -35,9 +35,18 @@ class Wt_Smarty extends \Smarty
         if ($_ENV['APP_CACHE'] === 'true') {
             $this->setCaching(\Smarty::CACHING_LIFETIME_CURRENT);
         }
+        self::resolveLang();
+    }
+
+    private static bool $langResolved = false;
+
+    public static function resolveLang(): void
+    {
+        if (self::$langResolved) return;
+        self::$langResolved = true;
         $allowedLangs = ['EN', 'AR'];
         $_SESSION['lang'] = $_SESSION['lang'] ?? 'EN';
-        $lang         = $_GET['lang'] ?? null;
+        $lang = $_GET['lang'] ?? null;
         if ($lang && in_array($lang, $allowedLangs, true)) {
             $_SESSION['lang'] = $lang;
         }
