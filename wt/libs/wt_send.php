@@ -52,9 +52,8 @@ trait Wt_Send
 
         $subject = str_replace(["\r", "\n"], '', $subject);
 
-        $headers = $this->buildHeaders($senderName, $senderEmail);
-
-        return mail($this->gEmail, $subject, $message, $headers);
+        // SMTP-when-configured (.env SMTP_*) + hardened mail() fallback.
+        return Wt_Mailer::send($this->gEmail, $subject, $message, true, $senderEmail, $senderName);
     }
 
     public function Wt_SendEmail(
@@ -73,10 +72,10 @@ trait Wt_Send
         }
 
         $subject = str_replace(["\r", "\n"], '', $subject);
-        $headers = $this->buildHeaders($this->appName, $this->sEmail);
-        $ok      = mail($to, $subject, $message, $headers);
+        // SMTP-when-configured (.env SMTP_*) + hardened mail() fallback.
+        $ok      = Wt_Mailer::send($to, $subject, $message, true, $this->sEmail, $this->appName);
 
-        $this->logEmail($to, $subject, $message, $ok ? 'sent' : 'failed', $ok ? null : 'mail() returned false', $toUserId, $sentBy);
+        $this->logEmail($to, $subject, $message, $ok ? 'sent' : 'failed', $ok ? null : 'delivery failed', $toUserId, $sentBy);
         return $ok;
     }
 

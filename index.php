@@ -20,29 +20,21 @@ $envPath = file_exists(__DIR__ . '/.env')
     ? __DIR__
     : dirname(__DIR__);
 wt_loadEnv($envPath);
-
-// Application time zone — keeps PHP date() aligned with the MySQL session time
-// zone set in Wt_DB. Override with APP_TZ in .env.
 date_default_timezone_set($_ENV['APP_TZ'] ?? 'Asia/Riyadh');
-
-// Error display: off in production. Set APP_DEBUG=true in .env for local development.
 $wtDebug = filter_var($_ENV['APP_DEBUG'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
 ini_set('display_errors', $wtDebug ? '1' : '0');
 ini_set('log_errors', '1');
-// E_DEPRECATED is always suppressed: the only source is the vendored Smarty
-// library (dynamic-property deprecations on PHP 8.2+), which we must not edit.
 error_reporting($wtDebug ? E_ALL & ~E_DEPRECATED : E_ALL & ~E_DEPRECATED & ~E_NOTICE);
 
-// ── Baseline security headers (all responses) ─────────────────────────────
 $wtHttps = (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['SERVER_PORT'] ?? '') == 443);
 header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: SAMEORIGIN');            // clickjacking guard (esp. admin)
+header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 if ($wtHttps) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 }
+header('Cache-Control: no-cache, must-revalidate');
 
-// ── Global exception handler: never leak a stack trace to the client ───────
 set_exception_handler(function (\Throwable $e) use ($wtDebug) {
     error_log('[' . ($_ENV['APP_NAME'] ?? 'WT') . '] Uncaught: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
     if (headers_sent()) return;
@@ -60,8 +52,6 @@ set_exception_handler(function (\Throwable $e) use ($wtDebug) {
 });
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
-    // Harden the session cookie: HttpOnly + SameSite=Lax (blocks cross-site POST CSRF),
-    // Secure automatically when served over HTTPS.
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
